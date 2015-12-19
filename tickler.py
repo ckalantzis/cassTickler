@@ -1,21 +1,19 @@
 import string, sys, time
 from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
-import time
-
 
 # Get the arguments
-cassKeyspace = sys.argv[1]
-cassTable = sys.argv[2]
-cassIP = sys.argv[3]
-cassPort = sys.argv[4]
+cassKeyspace = sys.argv[1] # Cassandra Keyspace containing the Table to tickle
+cassTable = sys.argv[2] # Cassandra Table to tickle
+cassIP = sys.argv[3] # Cassandra Port
+cassPort = sys.argv[4] # CQL Port
+cassThrottle = sys.argv[5] # microseconds
 
 print cassKeyspace
 print cassTable
 print cassIP
 print cassPort
-
-
+print cassThrottle
 
 # Set the connections to the cluster
 cluster = Cluster(
@@ -31,22 +29,20 @@ def getpkname(cassTableName):
     for yo in cluster.metadata.keyspaces[cassKeyspace].tables[cassTable].primary_key:
         primaryKey=yo.name
     return primaryKey
-
 print getpkname(cassTable)
 
 
 # Store existing read repair chance and set to 1
-
+print cluster.metadata.keyspaces[cassKeyspace].tables[cassTable].export_as_string()
 session.execute('ALTER TABLE ' + cassTable + ' WITH read_repair_chance = 1;')
 
 
-
 # read every key of the table
-query = "SELECT " + getpkname(cassTable) + " FROM " + cassTable + " limit 1000"  # kv contains 1000000 rows
+query = "SELECT * FROM " + cassTable + " limit 1000"  # kv contains 1000000 rows
 statement = SimpleStatement(query, fetch_size=100)
 for user_row in session.execute(statement):
     print user_row.id
-    time.sleep(1)  # delays for 1 seconds
+    time.sleep(float(cassThrottle) / 1000000)  # delay in microseconds between reading each row
 
 
-raise SystemExit(1)
+# raise SystemExit(1)
