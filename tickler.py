@@ -3,11 +3,11 @@ from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
 
 # Get the arguments
-cassKeyspace = sys.argv[1] # Cassandra Keyspace containing the Table to tickle
-cassTable = sys.argv[2] # Cassandra Table to tickle
-cassIP = sys.argv[3] # Cassandra Port
-cassPort = sys.argv[4] # CQL Port
-cassThrottle = sys.argv[5] # microseconds
+cassKeyspace = sys.argv[1]  # Cassandra Keyspace containing the Table to tickle
+cassTable = sys.argv[2]  # Cassandra Table to tickle
+cassIP = sys.argv[3]  # Cassandra Port
+cassPort = sys.argv[4]  # CQL Port
+cassThrottle = sys.argv[5]  # microseconds
 
 print cassKeyspace
 print cassTable
@@ -22,14 +22,6 @@ cluster = Cluster(
 
 # Connect to the KS
 session = cluster.connect(cassKeyspace)
-
-# get the primary key of the table
-###### This is dirty. May fail if the table has a composite PK
-def getpkname(cassTableName):
-    for yo in cluster.metadata.keyspaces[cassKeyspace].tables[cassTable].primary_key:
-        primaryKey=yo.name
-    return primaryKey
-print getpkname(cassTable)
 
 
 # Store existing read repair chance and set to 1
