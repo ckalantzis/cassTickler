@@ -1,4 +1,5 @@
-import string, sys, time
+import sys
+import time
 from cassandra.cluster import Cluster
 from cassandra.query import SimpleStatement
 
@@ -9,11 +10,11 @@ cassIP = sys.argv[3]  # Cassandra Port
 cassPort = sys.argv[4]  # CQL Port
 cassThrottle = sys.argv[5]  # microseconds
 
-print cassKeyspace
-print cassTable
-print cassIP
-print cassPort
-print cassThrottle
+print cassKeyspace  # debug
+print cassTable  # debug
+print cassIP  # debug
+print cassPort  # debug
+print cassThrottle  # debug
 
 # Set the connections to the cluster
 cluster = Cluster(
@@ -25,16 +26,18 @@ session = cluster.connect(cassKeyspace)
 
 
 # Store existing read repair chance and set to 1
-print cluster.metadata.keyspaces[cassKeyspace].tables[cassTable].export_as_string()
+cass_table_schema = cluster.metadata.keyspaces[cassKeyspace].tables[cassTable]
+orig_read_repair_chance = cass_table_schema.options.get('read_repair_chance')
+
 session.execute('ALTER TABLE ' + cassTable + ' WITH read_repair_chance = 1;')
 
 
 # read every key of the table
-query = "SELECT * FROM " + cassTable + " limit 1000"  # kv contains 1000000 rows
-statement = SimpleStatement(query, fetch_size=100)
+query = "SELECT * FROM " + cassTable  # kv contains 1000000 rows
+statement = SimpleStatement(query, fetch_size=1000)
 for user_row in session.execute(statement):
-    print user_row.id
+    print user_row.id  # debug
     time.sleep(float(cassThrottle) / 1000000)  # delay in microseconds between reading each row
 
-
-# raise SystemExit(1)
+# Set read repair back to original value
+session.execute('ALTER TABLE ' + cassTable + ' WITH read_repair_chance = ' + str(orig_read_repair_chance) + ';')
