@@ -25,8 +25,12 @@ cluster = Cluster(
 # Connect to the KS
 session = cluster.connect(cass_keyspace)
 
-# Get the PK column
-# TODO get the PK column
+# get the primary key of the table
+# This is dirty. May fail if the table has a composite PK
+for yo in cluster.metadata.keyspaces[cass_keyspace].tables[cass_table].primary_key:
+    primary_key = yo.name
+
+# print primary_key # debug
 
 # read every key of the table
 query = 'SELECT id FROM ' + cass_table
@@ -36,7 +40,7 @@ row_count = 0
 for user_row in session.execute(statement):
     # print user_row.id  # debug
     row_count += 1
-    repair_query = 'SELECT COUNT(1) FROM ' + cass_table + ' WHERE id = ' + str(user_row.id)
+    repair_query = 'SELECT COUNT(1) FROM ' + cass_table + ' WHERE ' + primary_key + ' = ' + str(user_row.id)
     repair_statement = SimpleStatement(repair_query, consistency_level=ConsistencyLevel.ALL)
     session.execute(repair_statement)
     time.sleep(float(cass_throttle) / 1000000)  # delay in microseconds between reading each row
