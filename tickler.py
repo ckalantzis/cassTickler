@@ -25,26 +25,26 @@ cluster = Cluster(
 # Connect to the KS
 session = cluster.connect(cass_keyspace)
 
-# get the primary key of the table
-# This is dirty. May fail if the table has a composite PK
-for yo in cluster.metadata.keyspaces[cass_keyspace].tables[cass_table].primary_key:
-    primary_key = yo.name
 
+# get the primary key of the table
+# May have interesting behavior if the table has a composite PK
+primary_key = cluster.metadata.keyspaces[cass_keyspace].tables[cass_table].primary_key[0].name
 # print primary_key # debug
 
-# read every key of the table
-query = 'SELECT id FROM ' + cass_table
-statement = SimpleStatement(query, fetch_size=1000)
-print 'Starting to repair table ' + cass_table
-row_count = 0
-for user_row in session.execute(statement):
-    # print user_row.id  # debug
-    row_count += 1
-    repair_query = 'SELECT COUNT(1) FROM ' + cass_table + ' WHERE ' + primary_key + ' = ' + str(user_row.id)
-    repair_statement = SimpleStatement(repair_query, consistency_level=ConsistencyLevel.ALL)
-    session.execute(repair_statement)
-    time.sleep(float(cass_throttle) / 1000000)  # delay in microseconds between reading each row
-    if (row_count % 1000) == 0:
-        print str(row_count) + ' rows processed'
-print 'Repair of table ' + cass_table + ' complete'
-print str(row_count) + ' rows read and repaired'
+if primary_key:
+    # read every key of the table
+    query = 'SELECT id FROM ' + cass_table
+    statement = SimpleStatement(query, fetch_size=1000, consistency_level=ConsistencyLevel.QUORUM)
+    print 'Starting to repair table ' + cass_table
+    row_count = 0
+    for user_row in session.execute(statement):
+        # print user_row.id  # debug
+        row_count += 1
+        repair_query = 'SELECT COUNT(1) FROM {} WHERE {} = {}'.format(cass_table, primary_key, user_row.id)
+        repair_statement = SimpleStatement(repair_query, consistency_level=ConsistencyLevel.ALL)
+        session.execute(repair_statement)
+        time.sleep(float(cass_throttle) / 1000000)  # delay in microseconds between reading each row
+        if (row_count % 1000) == 0:
+            print str(row_count) + ' rows processed'
+    print 'Repair of table ' + cass_table + ' complete'
+    print str(row_count) + ' rows read and repaired'
