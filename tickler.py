@@ -37,14 +37,15 @@ if primary_key:
     query = 'SELECT id FROM ' + protect_name(cass_table)
     statement = SimpleStatement(query, fetch_size=1000, consistency_level=ConsistencyLevel.QUORUM)
     print 'Starting to repair table ' + cass_table
+    repair_query = 'SELECT COUNT(1) FROM {} WHERE {} = ?'.format(protect_name(cass_table),
+                                                                 protect_name(primary_key))
+    repair_statement = session.prepare(repair_query)
+    repair_statement.consistency_level = ConsistencyLevel.ALL
     row_count = 0
     for user_row in session.execute(statement):
         # print user_row.id  # debug
         row_count += 1
-        repair_query = 'SELECT COUNT(1) FROM {} WHERE {} = {}'.format(protect_name(cass_table),
-                                                                      protect_name(primary_key), user_row.id)
-        repair_statement = SimpleStatement(repair_query, consistency_level=ConsistencyLevel.ALL)
-        session.execute(repair_statement)
+        session.execute(repair_statement, [user_row.id])
         time.sleep(float(cass_throttle) / 1000000)  # delay in microseconds between reading each row
         if (row_count % 1000) == 0:
             print str(row_count) + ' rows processed'
