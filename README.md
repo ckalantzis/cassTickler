@@ -15,7 +15,7 @@ Example
 ```python tickler.py my_ks my_table 127.0.0.1 9042 50```
 
 ## Getting started
-The Tickler requires Python >2.6 and >3.3 and the Python Cassanrra driver to be [installed].
+The Tickler requires Python >2.6 and >3.3 and the Python Cassandra driver to be [installed].
 follow the instructions found [here](http://datastax.github.io/python-driver/installation.html) to get it installed.
 
 Once installed, copy tickler.py to a machine that can access your Apache Cassandra cluster...and start repairing.
